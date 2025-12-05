@@ -1,6 +1,6 @@
-from PreProcessor import Mesh, Material, BoundaryConditions
-from Solver import KirchhoffPlateElement, Assembler, Solver
-from PostProcessor import PostProcessor
+from pre_processor import Mesh, Material, BoundaryConditions
+from solver import KirchhoffPlateElement, Assembler, Solver
+from post_processor import PostProcessor
 import numpy as np
 
 if __name__ == "__main__":
