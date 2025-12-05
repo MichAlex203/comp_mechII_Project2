@@ -13,6 +13,9 @@ class Material:
         self.nu = nu
         self.t = t
         self.D = E * t**3 / (12 * (1 - nu**2))
+        self.Ek = self.D * np.array([[1,   nu,   0],
+                                     [nu,   1,   0],
+                                     [0,   0, 0.5*(1 - nu)]])
 
 class BoundaryConditions:
     def __init__(self):

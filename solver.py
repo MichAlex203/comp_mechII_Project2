@@ -7,10 +7,7 @@ class KirchhoffPlateElement:
 
     def ke(self, elem_nodes):
         " Define material parameters "
-        E = self.mat.E
-        v = self.mat.n
-        t = self.mat.t
-        
+      
         x = elem_nodes[:, 0]
         y = elem_nodes[:, 1]
 
@@ -18,10 +15,8 @@ class KirchhoffPlateElement:
         b = 0.5*(max(y) - min(y))
         
         " Define Ek "
-        Dk = (E*t**3)/(12*(1-v**2))
-        Ek = Dk * np.array([[1,   v,   0],
-                            [v,   1,   0],
-                            [0,   0, 0.5*(1 - v)]])
+        # Dk = self.mat.D
+        Ek = self.mat.Ek
         
         " Define A^-1 "
         scalar = 1/(8*a**3*b**3)
