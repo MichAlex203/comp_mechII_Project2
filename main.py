@@ -17,6 +17,9 @@ if __name__ == "__main__":
     F = np.zeros(mesh.ndof)
 
     bc = BoundaryConditions()
+    # uniform load
+    bc.add_uniform_pressure(q=-700, mesh=mesh)
+
     bc.fixed.append((0,0))
     bc.fixed.append((0,1))
     bc.fixed.append((0,2))
