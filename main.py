@@ -48,5 +48,5 @@ if __name__ == "__main__":
     print("Displacements:\n", d)
     
     # Checking displacements
-    # plot_displacement_interactive(nodes, elements, U, scale=1e4, filename='disp.html')
+    plot_displacement_interactive(nodes, elements, U, scale=1, filename='disp.html')
     plot_deformed_shape(nodes, elements, U, scale=1, filename='disp.png')
