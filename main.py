@@ -2,10 +2,12 @@ from pre_processor import Mesh, Material, BoundaryConditions
 from solver import KirchhoffPlateElement, Assembler, Solver
 from post_processor import PostProcessor
 from interactive_plots import plot_mesh_quad_interactive, plot_displacement_interactive, plot_deformed_shape
+from meshGenerator import generate_parallelogram_mesh
 import numpy as np
 
 if __name__ == "__main__":
     
+    """
     theta = np.deg2rad(30)
     Lx = 1.0
     Ly = 1.0
@@ -18,6 +20,9 @@ if __name__ == "__main__":
     ]
 
     elements = [(0,1,2,3)]
+    """
+    
+    nodes, elements = generate_parallelogram_mesh(1.0, 1.0, 30, 4, 4)
 
     mesh = Mesh(nodes, elements)
     mat = Material(E=210e9, nu=0.3, t=0.01)
