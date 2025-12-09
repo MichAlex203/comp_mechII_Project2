@@ -28,7 +28,7 @@ if __name__ == "__main__":
     mat = Material(E=210e9, nu=0.3, t=0.01)
     
     # Checking mesh
-    plot_mesh_quad_interactive(nodes, elements, show=True, filename='Interactive_mesh.html')
+    plot_mesh_quad_interactive(nodes, elements, show=True, filename='Figures - Results/Interactive_mesh.html')
 
     element = KirchhoffPlateElement(mesh, mat)
     asm = Assembler(mesh, element)
@@ -53,5 +53,11 @@ if __name__ == "__main__":
     print("Displacements:\n", d)
     
     # Checking displacements
-    plot_displacement_interactive(nodes, elements, U, scale=1, filename='disp.html')
-    plot_deformed_shape(nodes, elements, U, scale=1, filename='disp.png')
+    plot_displacement_interactive(nodes, elements, U, scale=1, filename='Figures - Results/disp.html')
+    plot_deformed_shape(nodes, elements, U, scale=1, filename='Figures - Results/disp.png')
+
+    # Printing displacements
+    post = PostProcessor(mesh)
+    d = post.export_displacements(U)
+
+    post.export_displacements_csv(np.array(nodes), d, filename='Figures - Results/displacements.csv')
