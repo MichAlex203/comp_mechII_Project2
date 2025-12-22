@@ -22,29 +22,31 @@ class BoundaryConditions:
         self.fixed = []
         self.loads = {}
 
-    def add_uniform_pressure(self, q, mesh):
-        ndof = mesh.ndof_per_node
+    def apply_consistent_load(self, F, mesh, element_solver, q):
+        """
+        Εφαρμόζει το ομοιόμορφο φορτίο q χρησιμοποιώντας το Consistent Load Vector.
+        """
+        ndof_per_node = mesh.ndof_per_node
+        
+        for conn in mesh.elements:
+            elem_nodes = mesh.nodes[conn]
+            
+            # Καλούμε τη νέα συνάρτηση του στοιχείου
+            fe = element_solver.q_loading(elem_nodes, q)
+            
+            # Assembly στο global F vector
+            edofs = []
+            for nid in conn:
+                base = nid * ndof_per_node
+                edofs.extend([base, base+1, base+2])
+            
+            for i in range(12):
+                F[edofs[i]] += fe[i]
+        
+        return F
 
-        for elem in mesh.elements:
-            coords = mesh.nodes[elem]
-            x = coords[:,0]
-            y = coords[:,1]
-
-            # Εμβαδόν τετραπλεύρου με δύο τρίγωνα
-            A  = 0.5 * abs((x[1]-x[0])*(y[2]-y[0]) - (x[2]-x[0])*(y[1]-y[0]))
-            A += 0.5 * abs((x[3]-x[0])*(y[2]-y[0]) - (x[2]-x[0])*(y[3]-y[0]))
-
-            f_node = q * A / 4.0   # φορτίο σε κάθε κόμβο του στοιχείου
-
-            # πρόσθεση στο load dictionary
-            for nid in elem:
-                w_dof = nid * ndof + 0    # DOF για w
-                self.loads[w_dof] = self.loads.get(w_dof, 0.0) + f_node
-
-
-    def apply(self, K, F, ndof_per_node=3):
-        for dof, val in self.loads.items():
-            F[dof] += val
+    def apply_bc(self, K, F, ndof_per_node=3):
+        # Εφαρμογή πακτώσεων (Fixed DOFs)
         for (nid, d) in self.fixed:
             gdof = nid*ndof_per_node + d
             K[gdof, :] = 0.0
