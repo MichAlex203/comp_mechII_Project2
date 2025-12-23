@@ -23,7 +23,7 @@ if __name__ == "__main__":
     elements = [(0,1,2,3)]
     """
     
-    nodes, elements = generate_parallelogram_mesh(1.0, 1.0, 30, 6, 6)
+    nodes, elements = generate_parallelogram_mesh(1.0, 1.0, 30, 32, 32)
 
     mesh = Mesh(nodes, elements)
     mat = Material(E=210e9, nu=0.3, t=0.01)
@@ -41,9 +41,43 @@ if __name__ == "__main__":
     # uniform load
     F = bc.apply_consistent_load(F, mesh, element, q=-700)
 
+    """
     bc.fixed.append((0,0))
     bc.fixed.append((0,1))
     bc.fixed.append((0,2))
+    """
+    
+    # Boundary conditions
+    tol = 1e-6
+    for i, node in enumerate(nodes):
+        x, y = node
+        # Έλεγχος αν ο κόμβος είναι στα όρια του παραλληλογράμμου
+        # Parallelogram parameters
+        Lx = 1.0
+        Ly = 1.0
+        theta_rad = np.deg2rad(30)
+        
+        # Κάτω Πλευρά (y=0)
+        bottom = (abs(y) < tol)
+    
+        # Πάνω Πλευρά (y=height)
+        top = (abs(y - Ly * np.sin(theta_rad)) < tol)
+        
+        # Υπολογισμός του x που αντιστοιχεί σε αυτό το y στην αριστερή πλευρά
+        x_left = y / np.tan(theta_rad) 
+        left = (abs(x - x_left) < tol)
+        
+        # Δεξιά πλευρά (μετατόπιση +1 στο x)
+        right = (abs(x - (x_left + 1.0)) < tol) 
+        
+        if bottom or top or left or right:
+            # Δέσμευση μόνο του w (dof 0)
+            # Προσοχή: Ελέγξτε αν το dof 0 είναι το w ή αν είναι τα u,v,w. 
+            # Στις πλάκες Kirchhoff συνήθως είναι (w, theta_x, theta_y).
+            bc.fixed.append((i, 0))
+        
+    
+    # Solve Problem
     K, F = bc.apply_bc(K, F)
 
     solver = Solver()
@@ -63,7 +97,7 @@ if __name__ == "__main__":
 
     post.export_displacements_csv(np.array(nodes), d, filename='Figures - Results/displacements.csv')
     
-    # --- Εξαγωγή Τάσεων (CSV + PNG) ---
+    # Εξαγωγή Τάσεων (CSV + PNG)
     post.compute_and_export_stresses(
         U, 
         element, 
