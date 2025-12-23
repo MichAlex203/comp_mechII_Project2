@@ -190,3 +190,42 @@ def plot_deformed_shape(nodes, elements, U, scale=100, filename=None):
         plt.savefig(filename)
 
     plt.show()
+    
+def plot_stress_map(data, filename=None, show=True):
+    """
+    Δημιουργία Scatter Plot (Heatmap) των τάσεων Von Mises.
+    
+    Parameters
+    ----------
+    data : ndarray
+        Ο πίνακας δεδομένων από τον PostProcessor.
+        Στήλες: [ElemID, PointID, x, y, sx, sy, txy, VonMises]
+    filename : str, optional
+    """
+    # Ανάκτηση δεδομένων από τις στήλες
+    # x είναι η στήλη 2, y η στήλη 3, VonMises η στήλη 7
+    x = data[:, 2]
+    y = data[:, 3]
+    vm = data[:, 7] 
+
+    plt.figure(figsize=(10, 8))
+    
+    # Scatter plot με χρώμα ανάλογα την τάση Von Mises
+    # s=20 είναι το μέγεθος της κουκκίδας
+    sc = plt.scatter(x, y, c=vm, cmap='jet', s=20, edgecolors='none')
+    
+    plt.colorbar(sc, label='Von Mises Stress (Pa)')
+    plt.title('Von Mises Stress Distribution (Top Surface)')
+    plt.xlabel('x (m)')
+    plt.ylabel('y (m)')
+    plt.axis('equal')
+    plt.grid(True, linestyle='--', alpha=0.5)
+
+    if filename:
+        plt.savefig(filename, dpi=300)
+        print(f"Stress map plot saved to {filename}")
+    
+    if show:
+        plt.show()
+    
+    plt.close()
