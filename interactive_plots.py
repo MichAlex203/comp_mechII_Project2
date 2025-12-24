@@ -8,6 +8,7 @@ Created on Sat Dec  6 23:29:51 2025
 import plotly.graph_objects as go
 import numpy as np
 import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 
 def plot_mesh_quad_interactive(nodes, elems, show=True, filename=None):
     """
@@ -145,7 +146,7 @@ def plot_displacement_interactive(nodes, elems, U, scale=1.0, show=True, filenam
     if show:
         fig.show()
         
-def plot_deformed_shape(nodes, elements, U, scale=100, filename=None):
+def plot_deformed_shape(nodes, elements, U, scale=1, filename=None):
     """
     Plot undeformed and deformed quadrilateral mesh.
 
@@ -189,6 +190,42 @@ def plot_deformed_shape(nodes, elements, U, scale=100, filename=None):
     if filename:
         plt.savefig(filename)
 
+    plt.show()
+    
+def plot_displacement_3d(nodes, U, filename=None):
+    """
+    Δημιουργεί 3D επιφάνεια της βύθισης της πλάκας.
+    """
+    # 1. Ανάκτηση δεδομένων
+    x = nodes[:, 0]
+    y = nodes[:, 1]
+    
+    # Υποθέτουμε ότι το w είναι ο 1ος βαθμός ελευθερίας (dof 0) ανά κόμβο
+    # και ότι έχουμε 3 dofs ανά κόμβο (w, theta_x, theta_y)
+    w = U[0::3] 
+
+    # 2. Ρύθμιση του Plot
+    fig = plt.figure(figsize=(10, 7))
+    ax = fig.add_subplot(111, projection='3d')
+
+    # 3. Δημιουργία Επιφάνειας (Triangulated Surface)
+    # Το plot_trisurf δουλεύει αυτόματα με νέφος σημείων (δεν θέλει grid)
+    surf = ax.plot_trisurf(x, y, w, cmap='viridis', edgecolor='none', alpha=0.9)
+
+    # 4. Μορφοποίηση
+    ax.set_title("3D Deformed Shape (Vertical Displacement w)")
+    ax.set_xlabel("X (m)")
+    ax.set_ylabel("Y (m)")
+    ax.set_zlabel("w (Displacement)")
+    
+    # Προσθήκη Colorbar
+    fig.colorbar(surf, ax=ax, shrink=0.5, aspect=10, label='Displacement (m)')
+
+    # 5. Προβολή ή Αποθήκευση
+    if filename:
+        plt.savefig(filename, dpi=300)
+        print(f"3D Plot saved to {filename}")
+    
     plt.show()
     
 def plot_stress_map(data, filename=None, show=True):

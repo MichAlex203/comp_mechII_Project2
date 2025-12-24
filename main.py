@@ -1,8 +1,8 @@
 from pre_processor import Mesh, Material, BoundaryConditions
 from solver_parallel import KirchhoffPlateElement, Assembler, Solver
 from post_processor import PostProcessor
-from interactive_plots import plot_mesh_quad_interactive, plot_displacement_interactive, plot_deformed_shape
-from interactive_plots import plot_stress_map
+from interactive_plots import plot_mesh_quad_interactive, plot_displacement_interactive
+from interactive_plots import plot_deformed_shape, plot_displacement_3d, plot_stress_map
 from meshGenerator import generate_parallelogram_mesh
 import numpy as np
 
@@ -22,8 +22,13 @@ if __name__ == "__main__":
 
     elements = [(0,1,2,3)]
     """
+    a = 1.0
+    b = 1.0
+    theta = 30
+    rad_theta = np.deg2rad(theta)
     
-    nodes, elements = generate_parallelogram_mesh(1.0, 1.0, 30, 32, 32)
+    N_mesh = 32
+    nodes, elements = generate_parallelogram_mesh(a, b, theta, N_mesh, N_mesh)
 
     mesh = Mesh(nodes, elements)
     mat = Material(E=210e9, nu=0.3, t=0.01)
@@ -52,19 +57,14 @@ if __name__ == "__main__":
     for i, node in enumerate(nodes):
         x, y = node
         # Έλεγχος αν ο κόμβος είναι στα όρια του παραλληλογράμμου
-        # Parallelogram parameters
-        Lx = 1.0
-        Ly = 1.0
-        theta_rad = np.deg2rad(30)
-        
         # Κάτω Πλευρά (y=0)
         bottom = (abs(y) < tol)
     
         # Πάνω Πλευρά (y=height)
-        top = (abs(y - Ly * np.sin(theta_rad)) < tol)
+        top = (abs(y - b * np.sin(rad_theta)) < tol)
         
         # Υπολογισμός του x που αντιστοιχεί σε αυτό το y στην αριστερή πλευρά
-        x_left = y / np.tan(theta_rad) 
+        x_left = y / np.tan(rad_theta) 
         left = (abs(x - x_left) < tol)
         
         # Δεξιά πλευρά (μετατόπιση +1 στο x)
@@ -90,6 +90,7 @@ if __name__ == "__main__":
     # Checking displacements
     plot_displacement_interactive(nodes, elements, U, scale=1, filename='Figures - Results/disp.html')
     plot_deformed_shape(nodes, elements, U, scale=1, filename='Figures - Results/disp.png')
+    plot_displacement_3d(np.array(nodes), U, filename='Figures - Results/disp_3d.png')
 
     # Printing displacements
     post = PostProcessor(mesh)
