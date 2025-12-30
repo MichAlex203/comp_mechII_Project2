@@ -55,66 +55,29 @@ class KirchhoffPlateElement:
 
         return Te * coef
     
-    def dof_transformation_matrix(self, ax, ay, bx, by):
-        """
-        Κατασκευάζει τον πίνακα μετασχηματισμού των βαθμών ελευθερίας (T_dof).
-        Μετατρέπει τα DOFs από το Global (w, w_x, w_y) στο Local (w, w_xi, w_eta).
-        d_local = T_dof * d_global
-        
-        Βάσει του Chain Rule:
-        w_xi  = w_x * (dx/dxi) + w_y * (dy/dxi)
-        w_eta = w_x * (dx/deta) + w_y * (dy/deta)
-        """
-        # Οι μερικές παράγωγοι της γεωμετρίας (Jacobian terms)
-        # x = ... + xi * (ax/2) + ... => dx/dxi = ax/2
-        dxdxi = ax / 2.0
-        dydxi = ay / 2.0
-        dxdeta = bx / 2.0
-        dydeta = by / 2.0
-
-        # Μπλοκ μετασχηματισμού για έναν κόμβο (3x3)
-        # [ w   ]       [ 1     0       0     ] [ w   ]
-        # [ w_xi]   =   [ 0   dx/dxi  dy/dxi  ] [ w_x ]
-        # [ w_eta]      [ 0   dx/deta dy/deta ] [ w_y ]
-        
-        T_node = np.array([
-            [1.0, 0.0,    0.0],
-            [0.0, dxdxi,  dydxi],
-            [0.0, dxdeta, dydeta]
-        ])
-
-        # Κατασκευή του πλήρους πίνακα 12x12 (Block Diagonal)
-        T_dof = np.zeros((12, 12))
-        for i in range(4):
-            T_dof[3*i : 3*i+3, 3*i : 3*i+3] = T_node
-            
-        return T_dof
-    
     def q_loading(self, elem_nodes, q):
         """
-        Υπολογίζει το διάνυσμα φορτίου σύμφωνα με το PDF.
-        f = integral( N.T * q * detJ ) dxi deta
+        Consistent load vector.
+        Υπολογίζεται πρώτα στο φυσικό σύστημα (ξ,η)
+        και μετά μετατρέπεται στο global μέσω |J|.
         """
+
         x = elem_nodes[:, 0]
         y = elem_nodes[:, 1]
-        
+
         ax = x[1] - x[0]
         ay = y[1] - y[0]
         bx = x[3] - x[0]
         by = y[3] - y[0]
-
-        # Jacobian
+        
         detJ = (ax * by - ay * bx) / 4.0
         
-        # 1. Υπολογισμός T_dof
-        T_dof = self.dof_transformation_matrix(ax, ay, bx, by)
-
         gp = [-1/np.sqrt(3), 1/np.sqrt(3)]
         w  = [1, 1]
         
-        # Αυτό είναι το f στο τοπικό σύστημα (local DOFs)
+        # 1. Load στο φυσικό σύστημα
         f_local = np.zeros(12)
-
+        
         for i in range(2):
             for j in range(2):
                 xi = gp[i]
@@ -122,20 +85,19 @@ class KirchhoffPlateElement:
                 weight = w[i] * w[j]
 
                 p_vec = np.array([
-                    1, xi, eta, 
-                    xi**2, xi*eta, eta**2, 
-                    xi**3, xi**2*eta, xi*eta**2, eta**3, 
+                    1, xi, eta,
+                    xi**2, xi*eta, eta**2,
+                    xi**3, xi**2*eta, xi*eta**2, eta**3,
                     xi**3*eta, xi*eta**3
-                ])
+                    ])
 
-                # N shape functions για local dofs
                 N = p_vec @ self.A_inv
 
-                f_local += N * q * abs(detJ) * weight
-        
-        # 2. Μετατροπή στο Global σύστημα
-        # f_global = T_dof.T * f_local
-        f_global = T_dof.T @ f_local
+                # ΜΟΝΟ local contribution
+                f_local += N * q * weight
+
+        # 2. Local → Global (ίδιο σύστημα με το K)
+        f_global = abs(detJ) * f_local
 
         return f_global
 
@@ -164,39 +126,38 @@ class KirchhoffPlateElement:
 
         " 3. Πίνακας Μετασχηματισμού Te "
         Te = self.Te(ax, ay, bx, by, detJ)
-        
-        # 1. Υπολογισμός T_dof 
-        T_dof = self.dof_transformation_matrix(ax, ay, bx, by)
 
         # Ολοκλήρωση Gauss
         gp = [-1/np.sqrt(3), 1/np.sqrt(3)]
         w  = [1, 1]
-        ke_local = np.zeros((12,12))
+        ke = np.zeros((12,12))
 
         for i in range(2):
             for j in range(2):
                 xi = gp[i]
                 eta = gp[j]
                 weight = w[i]*w[j]
+
+                # Beta matrix (παράγωγοι ως προς xi, eta)
                 
                 beta = np.array([
-                    [0,0,0, 2,0,0, 6*xi, 2*eta, 0, 0, 6*xi*eta, 0],          
-                    [0,0,0, 0,0,2, 0, 0, 2*xi, 6*eta, 0, 6*xi*eta],          
-                    [0,0,0, 0,2,0, 0, 4*xi, 4*eta, 0, 6*xi**2, 6*eta**2]     
+                    [0,0,0, 2,0,0, 6*xi, 2*eta, 0, 0, 6*xi*eta, 0],          # d2/dxi2
+                    [0,0,0, 0,0,2, 0, 0, 2*xi, 6*eta, 0, 6*xi*eta],          # d2/deta2
+                    [0,0,0, 0,2,0, 0, 4*xi, 4*eta, 0, 6*xi**2, 6*eta**2]     # 2*d2/dxi*deta
                 ])
 
+                # B_natural: Καμπυλότητες στο φυσικό σύστημα (xi, eta)
                 B_nat = beta @ self.A_inv
+
+                # B_cartesian: Καμπυλότητες στο καρτεσιανό σύστημα (x, y)
+                # k_x = Te * k_xi
                 B_cart = Te @ B_nat
 
-                ke_local += B_cart.T @ Ek @ B_cart * abs(detJ) * weight
+                ke += B_cart.T @ Ek @ B_cart * abs(detJ) * weight
 
-        # 2. Μετατροπή στο Global σύστημα (w, w_x, w_y)
-        # K_global = T_dof.T * K_local * T_dof
-        ke_global = T_dof.T @ ke_local @ T_dof
-
-        return ke_global
+        return ke
     
-    def calculate_stresses(self, elem_nodes, u_elem_global, z_coord, xi=0, eta=0):
+    def calculate_stresses(self, elem_nodes, u_elem, z_coord, xi=0, eta=0):
         """
         Υπολογίζει τις τάσεις [sigma_x, sigma_y, tau_xy] σε συγκεκριμένο σημείο (xi, eta, z).
         [cite_start]sigma = [E] * z * [B] * d 
@@ -214,12 +175,6 @@ class KirchhoffPlateElement:
 
         # Πίνακας Μετασχηματισμού Te
         Te = self.Te(ax, ay, bx, by, detJ)
-        
-        # Πρέπει να μετατρέψουμε και εδώ τα DOFs εισόδου
-        T_dof = self.dof_transformation_matrix(ax, ay, bx, by)
-        
-        # Μετατροπή των global displacements σε local (για να πολλαπλασιαστούν με το B_nat/B_cart)
-        u_elem_local = T_dof @ u_elem_global
 
         # Beta matrix στο σημείο (xi, eta)
         beta = np.array([
@@ -232,7 +187,7 @@ class KirchhoffPlateElement:
         B_nat = beta @ self.A_inv
         B_cart = Te @ B_nat
         
-        curvatures = B_cart @ u_elem_local  # {k_x, k_y, k_xy}^T
+        curvatures = B_cart @ u_elem  # {k_x, k_y, k_xy}^T
 
         # Υπολογισμός Μητρώου Ελαστικότητας Επιπέδου (Plane Stress Matrix)
         t = self.mat.t

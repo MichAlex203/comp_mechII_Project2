@@ -139,9 +139,11 @@ class PostProcessor:
         radius_stress = np.sqrt(((sx - sy) / 2.0)**2 + txy**2)
         
         sigma1 = center_stress + radius_stress
+        sigma2 = center_stress - radius_stress
 
         # Μετατροπή σε MPa
         sigma1_mpa = sigma1 / 1e6
+        sigma2_mpa = sigma2 / 1e6
 
         print(f"Geometric Center:      x={center_x:.3f}, y={center_y:.3f}")
         print(f"Checked Element ID:    {closest_elem_idx}")
@@ -150,5 +152,6 @@ class PostProcessor:
         print(f"  Sigma_y: {sy:.2f} Pa")
         print(f"  Tau_xy:  {txy:.2f} Pa")
         print(f"Max Principal (σ1):    {sigma1_mpa:.4f} MPa")
+        print(f"Min Principal (σ2):    {sigma2_mpa:.4f} MPa")
             
         return sigma1_mpa
