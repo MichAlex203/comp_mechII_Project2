@@ -1,5 +1,5 @@
 from pre_processor import Mesh, Material, BoundaryConditions
-from solver_parallel import KirchhoffPlateElement, Assembler, Solver
+from new_solver3 import KirchhoffPlateElement, Assembler, Solver
 from post_processor import PostProcessor
 from interactive_plots import plot_mesh_quad_interactive, plot_displacement_interactive
 from interactive_plots import plot_deformed_shape, plot_displacement_3d, plot_stress_map
@@ -8,11 +8,15 @@ import numpy as np
 
 if __name__ == "__main__":
     
+    a = 1.0
+    b = 1.0
+    theta = 30
+    rad_theta = np.deg2rad(theta)
+    
+    N_mesh = 8
+    nodes, elements = generate_parallelogram_mesh(a, b, theta, N_mesh, N_mesh)
+    
     """
-    theta = np.deg2rad(30)
-    Lx = 1.0
-    Ly = 1.0
-
     nodes = [
     (0.0, 0.0),
     (Lx, 0.0),
@@ -22,13 +26,7 @@ if __name__ == "__main__":
 
     elements = [(0,1,2,3)]
     """
-    a = 1.0
-    b = 1.0
-    theta = 30
-    rad_theta = np.deg2rad(theta)
-    
-    N_mesh = 32
-    nodes, elements = generate_parallelogram_mesh(a, b, theta, N_mesh, N_mesh)
+
 
     mesh = Mesh(nodes, elements)
     mat = Material(E=210e9, nu=0.3, t=0.01)
