@@ -56,7 +56,7 @@ class PostProcessor:
             # Υπολογισμός για κάθε ένα από τα 5 σημεία
             for pid, xi, eta in points_of_interest:
                 # 1. Υπολογισμός Τάσεων
-                sigma = element_solver.calculate_stresses(elem_nodes, u_elem, z_coord=z_top, xi=xi, eta=eta)
+                sigma = element_solver.calculate_stress(elem_nodes, u_elem, z_coord=z_top, xi=xi, eta=eta)
                 sx, sy, txy = sigma[0], sigma[1], sigma[2]
                 
                 # 2. Von Mises Stress
@@ -129,8 +129,14 @@ class PostProcessor:
             edofs.extend([base, base+1, base+2])
         u_elem = U[edofs]
 
+        # Extra: Εκτύπωση βύθισης στο κέντρο
+        A1 = element_solver.A_inv()
+        w_poly, _, _ = element_solver.w(0.0, 0.0)
+        N_center = np.array(w_poly) @ A1
+        w_center = N_center @ u_elem
+                
         # Υπολογισμός [sx, sy, txy]
-        sigma = element_solver.calculate_stresses(el_nodes, u_elem, z_coord=z_bottom, xi=0.0, eta=0.0)
+        sigma = element_solver.calculate_stress(el_nodes, u_elem, z_coord=z_bottom, xi=0.0, eta=0.0)
         sx, sy, txy = sigma[0], sigma[1], sigma[2]
 
         # 4. Υπολογισμός Μέγιστης Κύριας Τάσης (Principal Stress σ1)
@@ -147,6 +153,7 @@ class PostProcessor:
 
         print(f"Geometric Center:      x={center_x:.3f}, y={center_y:.3f}")
         print(f"Checked Element ID:    {closest_elem_idx}")
+        print(f"Max Displacement (w) at center: {w_center:.6e} m")
         print(f"Stresses (z={z_bottom:.4f}):")
         print(f"  Sigma_x: {sx:.2f} Pa")
         print(f"  Sigma_y: {sy:.2f} Pa")
